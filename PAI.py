@@ -409,8 +409,47 @@ class FenPrincipale(Tk):
         conn.close()
         conn.logout()
         return(res)
+    def creer_dossier(self,id_aeronef):
+        ORG_EMAIL = "@outlook.fr" 
+        usernm = "test.pai3" + ORG_EMAIL 
+        passwd = "Tomblanchard3."
+        conn = imaplib.IMAP4_SSL('outlook.office365.com')
+        conn.login(usernm,passwd)
+        conn.select('Inbox')
+        conn.create(str(id_aeronef))
+        self.deplacer_mail(id_aeronef)
+    def deplacer_mail(self,id_aeronef):
+        
+        ORG_EMAIL = "@outlook.fr" 
+        usernm = "test.pai3" + ORG_EMAIL 
+        passwd = "Tomblanchard3."
+        conn = imaplib.IMAP4_SSL('outlook.office365.com')
+        conn.login(usernm,passwd)
+        conn.select('Inbox')
+        status, messages = conn.search(None, 'ALL')
+            # Récupérer l'identifiant du dernier message
+        
+        for message_id in messages[0].split():
+            # Déplacer chaque message dans le dossier "id_aeronef"
+            result = conn.copy(message_id, str(id_aeronef))
+            if result[0] == 'OK':
+                conn.store(message_id , '+FLAGS', '\\Deleted')
+                conn.expunge()
+                print("Message déplacé avec succès")
 
-                
+        conn.close()
+        conn.logout()
+    def supprimer_dossier(self,id_aeronef):
+        self.deplacer_mail(id_aeronef)
+        ORG_EMAIL = "@outlook.fr" 
+        usernm = "test.pai3" + ORG_EMAIL 
+        passwd = "Tomblanchard3."
+        conn = imaplib.IMAP4_SSL('outlook.office365.com')
+        conn.login(usernm,passwd)
+        conn.select(str(id_aeronef))
+        type, data = conn.delete(str(id_aeronef))
+        conn.close()
+        conn.logout()      
     ### Reconnaissance du type de mail ###
     def reconnaissance(self, corps):
         #exemple de mail :
@@ -440,22 +479,32 @@ class FenPrincipale(Tk):
             self.plan_de_vol(corps,id_aeronef)
             self.ecriture_excel(corps,id_aeronef)
             self.tri_geographique(corps,id_aeronef,decoupage)
+            self.creer_dossier(id_aeronef)
+            
         elif type_message=='DLA':
             self.message_delai(corps,id_aeronef)
+            self.deplacer_mail(id_aeronef)
         elif type_message=='CHG':
             self.message_changement(corps,id_aeronef)
+            self.deplacer_mail(id_aeronef)
         elif type_message=='CNL':
             self.message_annulation(corps,id_aeronef)
+            self.supprimer_dossier(id_aeronef)
         elif type_message=='DEP':
             self.message_depart(corps,id_aeronef)
+            self.deplacer_mail(id_aeronef)
         elif type_message=='ARR':
             self.message_arrive(corps,id_aeronef)
+            self.supprimer_dossier(id_aeronef)
         elif type_message=='REFUS':
             self.message_refus(corps,id_aeronef)
+            self.supprimer_dossier(id_aeronef)
         elif type_message=='ACP':
             self.message_acceptation(corps,id_aeronef)
+            self.deplacer_mail(id_aeronef)
         elif type_message=='SPL':
             self.plan_de_vol_complementaire(corps,id_aeronef)
+            self.deplacer_mail(id_aeronef)
 
 
     def affichage_zone(self,event):
